@@ -18,6 +18,7 @@ contract BuyMyRoom is ERC721 {
 
     // maybe you need a struct to store car information
     struct House {
+        uint256 tokenId;
         address owner;
         uint256 listedTimestamp;
         uint256 price; // 房屋价格
@@ -49,7 +50,7 @@ contract BuyMyRoom is ERC721 {
             token_cnt++; // 房屋总数加一
             _mint(msg.sender, tokenId); // 铸造代币
             // uint256 new_price = block.timestamp % 100; // 随机生成价格
-            houses[tokenId] = House(msg.sender, block.timestamp, 0, false, 0); // 初始化房屋信息
+            houses[tokenId] = House(tokenId, msg.sender, block.timestamp, 0, false, 0); // 初始化房屋信息
         }
         AirDropped[msg.sender] = true;
     }

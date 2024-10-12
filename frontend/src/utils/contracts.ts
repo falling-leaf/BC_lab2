@@ -1,8 +1,6 @@
 import Addresses from './contract-addresses.json'
-import Lottery from './abis/Lottery.json'
-import MyERC20 from './abis/MyERC20.json'
-
-const Web3 = require('web3');
+import BuyMyRoom from './abis/BuyMyRoom.json'
+import Web3 from 'web3'
 
 // @ts-ignore
 // 创建web3实例
@@ -10,14 +8,11 @@ const Web3 = require('web3');
 let web3 = new Web3(window.web3.currentProvider)
 
 // 修改地址为部署的合约地址
-const lotteryAddress = Addresses.lottery
-const lotteryABI = Lottery.abi
-const myERC20Address = Addresses.myERC20
-const myERC20ABI = MyERC20.abi
+const roomAddress = Addresses.BuyMyRoom
+const roomABI = BuyMyRoom.abi
 
 // 获取合约实例
-const lotteryContract = new web3.eth.Contract(lotteryABI, lotteryAddress);
-const myERC20Contract = new web3.eth.Contract(myERC20ABI, myERC20Address);
+const roomContract = new web3.eth.Contract(roomABI, roomAddress);
 
 // 导出web3实例和其它部署的合约
-export {web3, lotteryContract, myERC20Contract}
+export {web3, roomContract}
