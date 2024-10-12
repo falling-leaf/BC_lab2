@@ -128,6 +128,10 @@ contract BuyMyRoom is ERC721 {
         return true;
     }
 
+    function getManager() public view returns(address) { 
+        return manager;
+    }
+
     // ...
     // TODO add any logic if you want
 }

@@ -1,8 +1,7 @@
-import {Button, Table} from 'antd';
+import {Button, Table, Modal, Input} from 'antd';
 import {useEffect, useState} from 'react';
 import {roomContract, web3} from "../../utils/contracts";
 import './index.css';
-import { on } from 'events';
 
 const { Column, ColumnGroup } = Table;
 
@@ -12,6 +11,7 @@ const GanacheTestChainName = 'Ganache Test Chain'
 const GanacheTestChainRpcUrl = 'http://127.0.0.1:8545'
 
 interface House {
+    tokenId: number;
     owner: string;
     listedTimestamp: number;
     price: number; // 房屋价格
@@ -25,6 +25,36 @@ const HousePage = () => {
     const [managerAccount, setManagerAccount] = useState('')
     const [houses, setHouses] = useState<House[]>([])
     const [onSaleHouses, setOnSaleHouses] = useState<House[]>([])
+    const [settingPrice, setSettingPrice] = useState(0)
+
+    const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+    const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
+
+    const showSaleModal = () => {
+        setIsSaleModalOpen(true);
+    };
+
+    const handleSaleOk = (record: House, price: number) => {
+        onSaleHouse(parseInt(record.tokenId.toString()), price)
+        setIsSaleModalOpen(false);
+    };
+
+    const handleSaleCancel = () => {
+        setIsSaleModalOpen(false);
+    };
+
+    const showBuyModal = () => {
+        setIsBuyModalOpen(true);
+    };
+
+    const handleBuyOk = (record: House) => {
+        onBuyHouse(parseInt(record.tokenId.toString()))
+        setIsBuyModalOpen(false);
+    };
+
+    const handleBuyCancel = () => {
+        setIsBuyModalOpen(false);
+    };
 
     useEffect(() => {
         // 初始化检查用户是否已经连接钱包
@@ -43,22 +73,21 @@ const HousePage = () => {
         initCheckAccounts()
     }, [])
 
-
-
-    // useEffect(() => {
-    //     const getAccountInfo = async () => {
-    //         if (myERC20Contract) {
-    //             const ab = await myERC20Contract.methods.balanceOf(account).call()
-    //             setAccountBalance(ab)
-    //         } else {
-    //             alert('Contract not exists.')
-    //         }
-    //     }
-
-    //     if(account !== '') {
-    //         getAccountInfo()
-    //     }
-    // }, [account])
+    useEffect(() => {
+        const GetManager = async () => {
+            if (roomContract) {
+                try {
+                    const manager: string = await roomContract.methods.getManager().call()
+                    setManagerAccount(manager)
+                }
+                catch (error: any) {
+                    console.log(error)
+                    alert(error.message)
+                }
+            }
+        }
+        GetManager()
+    }, [])
 
     const onClaimTokenAirdrop = async () => {
         if(account === '') {
@@ -133,6 +162,7 @@ const HousePage = () => {
 
         if (roomContract) {
             try {
+                console.log(houseId)
                 const tx = await roomContract.methods.buyHouse(houseId).send({
                     from: account
                 })
@@ -148,7 +178,7 @@ const HousePage = () => {
         }
     }
 
-    const onSaleHouse = async (houseId: number) => {
+    const onSaleHouse = async (houseId: number, price: number) => {
         if(account === '') {
             alert('You have not connected wallet yet.')
             return
@@ -156,7 +186,7 @@ const HousePage = () => {
 
         if (roomContract) {
             try {
-                const tx = await roomContract.methods.saleHouse(houseId).send({
+                const tx = await roomContract.methods.saleHouse(houseId, price).send({
                     from: account
                 })
                 console.log(tx)
@@ -222,32 +252,54 @@ const HousePage = () => {
                     {account === '' && <Button onClick={onClickConnectWallet}>连接钱包</Button>}
                     <div>当前用户：{account === '' ? '无用户连接' : account}</div>
                 </div>
+                <Button onClick={onClickConnectWallet}>连接钱包</Button>
                 <div style={{display: 'flex', justifyContent: 'space-between'}}>
                     <div>我的房屋
                         <Button onClick={onGetMyHouse}>查看我的房屋</Button>
                         <Table<House> dataSource={houses}>
+                            <Column title="编号" key="tokenId" render={(text, record) => record.tokenId !== undefined ? record.tokenId.toString() : '无编号'} />
                             <Column title="所有人" dataIndex="owner" key="owner" />
-                            <Column title="价格" dataIndex="price" key="price" />
-                            <Column title="是否在售" dataIndex="onSale" key="onSale" />
-                            <Column title="挂单时间" dataIndex="onSaleTimestamp" key="onSaleTimestamp" />
-                            {/* <Column
+                            <Column title="价格" key="price" render={(text, record) => record.price !== undefined ? record.price.toString() : '无编号'} />
+                            <Column title="是否在售" key="onSale" render={(text, record) => record.onSale !== undefined ? record.onSale.toString() : '无编号'} />
+                            <Column title="挂单时间" key="onSaleTimestamp" render={(text, record) => record.onSaleTimestamp !== undefined ? record.onSaleTimestamp.toString() : '无编号'} />
+                            <Column
                                 title="Action"
                                 key="action"
                                 render={(_: any, record: House) => (
                                     <div>
-                                        <Button onClick={onBuyHouse(record.houseId)}>出售</Button>
+                                        <Button onClick={showSaleModal}>出售</Button>
+                                        <Modal title="Basic Modal" open={isSaleModalOpen} onOk={() =>handleSaleOk(record, settingPrice)} onCancel={handleSaleCancel}>
+                                            <Input placeholder="请输入价格"
+                                                onChange={(e) => setSettingPrice(parseInt(e.target.value))}
+                                             />
+                                        </Modal>
                                     </div>
+                                    
                                 )}
-                            /> */}
+                            />
                         </Table>
                     </div>
                     <div>买入房屋
                         <Button onClick={onGetOnSaleHouse}>查看可购房屋</Button>
                         <Table<House> dataSource={onSaleHouses}>
+                            <Column title="编号" key="tokenId" render={(text, record) => record.tokenId !== undefined ? record.tokenId.toString() : '无编号'} />
                             <Column title="所有人" dataIndex="owner" key="owner" />
-                            <Column title="价格" dataIndex="price" key="price" />
-                            <Column title="是否在售" dataIndex="onSale" key="onSale" />
-                            <Column title="挂单时间" dataIndex="onSaleTimestamp" key="onSaleTimestamp" />
+                            <Column title="价格" key="price" render={(text, record) => record.price !== undefined ? record.price.toString() : '无编号'} />
+                            <Column title="是否在售" key="onSale" render={(text, record) => record.onSale !== undefined ? record.onSale.toString() : '无编号'} />
+                            <Column title="挂单时间" key="onSaleTimestamp" render={(text, record) => record.onSaleTimestamp !== undefined ? record.onSaleTimestamp.toString() : '无编号'} />
+                            <Column
+                                title="Action"
+                                key="action"
+                                render={(_: any, record: House) => (
+                                    <div>
+                                        <Button onClick={showBuyModal}>购买</Button>
+                                        <Modal title="Basic Modal" open={isBuyModalOpen} onOk={() =>handleBuyOk(record)} onCancel={handleBuyCancel}>
+                                            <p>你确定要购买该房屋吗？</p>
+                                        </Modal>
+                                    </div>
+                                    
+                                )}
+                            />
                         </Table>
                     </div>
                 </div>
