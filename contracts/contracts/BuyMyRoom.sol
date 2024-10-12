@@ -15,6 +15,7 @@ contract BuyMyRoom is ERC721 {
     // use a event if you want
     // to represent time you can choose block.timestamp
     event HouseListed(uint256 tokenId, uint256 price, address owner);
+    event OnBuy(uint256 tokenId, address buyer, uint256 price);
 
     // maybe you need a struct to store car information
     struct House {
@@ -104,27 +105,40 @@ contract BuyMyRoom is ERC721 {
 
     // 功能四：出售房屋
     function saleHouse(uint256 houseId, uint256 price) public returns(bool) {
+        emit HouseListed(houseId, price, msg.sender);
         require (houses[houseId].owner == msg.sender, "You are not the owner of this house");
         require (houses[houseId].onSale == false, "This house is already on sale");
         houses[houseId].onSale = true; // 房屋在售
         houses[houseId].onSaleTimestamp = block.timestamp; // 挂单时间
         houses[houseId].price = price; // 房屋价格
+        emit HouseListed(houseId, price, msg.sender);
         return true;
     }
 
     // 功能五：购买房屋+手续费
-    function buyHouse(uint256 houseId) public returns(bool) {
+    function buyHouse(uint256 houseId) public payable returns(bool) {
         require (houses[houseId].onSale, "This house is not on sale");
         require (msg.sender != houses[houseId].owner, "You cannot buy your own house");
-        require (msg.sender.balance >= houses[houseId].price, "You don't have enough balance");
-        // 开始交易
+        require (msg.value >= houses[houseId].price, "You don't have enough balance"); // 使用 msg.value 检查
+
         uint fee = houses[houseId].price / 10; // 手续费
-        payable(manager).transfer(fee); // 转账给管理员
-        payable(houses[houseId].owner).transfer(houses[houseId].price - fee); // 转账给房主
+        uint sellerAmount = houses[houseId].price - fee;
+
+        // 确保管理者和卖方都能正确接收款项
+        // payable(manager).transfer(fee);
+        // payable(houses[houseId].owner).transfer(sellerAmount);
+        (bool successFee, ) = manager.call{value: fee}("");
+        require(successFee, "Failed to send fee to manager");
+
+        (bool successSeller, ) = houses[houseId].owner.call{value: sellerAmount}("");
+        require(successSeller, "Failed to send amount to seller");
+
         _transfer(houses[houseId].owner, msg.sender, houseId); // 转移房产
         houses[houseId].onSale = false; // 房屋不再在售
         houses[houseId].onSaleTimestamp = 0; // 挂单时间清零
         houses[houseId].owner = msg.sender; // 房主变更
+
+        emit OnBuy(houseId, msg.sender, houses[houseId].price); // 触发事件
         return true;
     }
 

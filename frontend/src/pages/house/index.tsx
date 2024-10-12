@@ -29,13 +29,16 @@ const HousePage = () => {
 
     const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
     const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
+    const [CopeSaleHouse, setCopeSaleHouse] = useState<House | null>(null);
+    const [CopeBuyHouse, setCopeBuyHouse] = useState<House | null>(null);
 
-    const showSaleModal = () => {
+    const showSaleModal = (record: House) => {
         setIsSaleModalOpen(true);
+        setCopeSaleHouse(record);
     };
 
-    const handleSaleOk = (record: House, price: number) => {
-        onSaleHouse(parseInt(record.tokenId.toString()), price)
+    const handleSaleOk = (price: number) => {
+        onSaleHouse(CopeSaleHouse!.tokenId, price)
         setIsSaleModalOpen(false);
     };
 
@@ -43,12 +46,13 @@ const HousePage = () => {
         setIsSaleModalOpen(false);
     };
 
-    const showBuyModal = () => {
+    const showBuyModal = (record: House) => {
         setIsBuyModalOpen(true);
+        setCopeBuyHouse(record);
     };
 
-    const handleBuyOk = (record: House) => {
-        onBuyHouse(parseInt(record.tokenId.toString()))
+    const handleBuyOk = () => {
+        onBuyHouse(CopeBuyHouse!.tokenId)
         setIsBuyModalOpen(false);
     };
 
@@ -155,28 +159,37 @@ const HousePage = () => {
     }
 
     const onBuyHouse = async (houseId: number) => {
-        if(account === '') {
+        if (account === '') {
             alert('You have not connected wallet yet.')
-            return
+            return;
         }
-
+    
         if (roomContract) {
             try {
-                console.log(houseId)
+                // 获取房屋信息以获取价格
+                const house: House = await roomContract.methods.getHouseInfo(houseId).call(); // 确保此函数可以从合约中获取房屋信息
+                const housePrice = BigInt(house.price) * BigInt("1000000000000000000"); // 获取房屋价格
+    
+                console.log(`House ID: ${houseId}, Price: ${housePrice}`);
+    
+                // 执行购买房屋交易
                 const tx = await roomContract.methods.buyHouse(houseId).send({
-                    from: account
-                })
-                console.log(tx)
-                alert('You have bought the house.')
-                onGetMyHouse();
+                    from: account,
+                    value: housePrice.toString() // 将房屋价格作为以太币数量传递
+                });
+    
+                console.log(tx);
+                alert('You have bought the house.');
+                onGetMyHouse(); // 刷新用户房屋列表
+                onGetOnSaleHouse(); // 刷新可购房屋列表
             } catch (error: any) {
-                alert(error.message)
+                alert(error.message);
             }
-
-            } else {
-            alert('Contract not exists.')
+        } else {
+            alert('Contract not exists.');
         }
     }
+    
 
     const onSaleHouse = async (houseId: number, price: number) => {
         if(account === '') {
@@ -186,12 +199,14 @@ const HousePage = () => {
 
         if (roomContract) {
             try {
+                console.log(houseId, price)
                 const tx = await roomContract.methods.saleHouse(houseId, price).send({
                     from: account
                 })
                 console.log(tx)
                 alert('You have put the house on sale.')
                 onGetMyHouse();
+                onGetOnSaleHouse();
             } catch (error: any) {
                 alert(error.message)
             }
@@ -267,8 +282,8 @@ const HousePage = () => {
                                 key="action"
                                 render={(_: any, record: House) => (
                                     <div>
-                                        <Button onClick={showSaleModal}>出售</Button>
-                                        <Modal title="Basic Modal" open={isSaleModalOpen} onOk={() =>handleSaleOk(record, settingPrice)} onCancel={handleSaleCancel}>
+                                        <Button onClick={() => showSaleModal(record)}>出售</Button>
+                                        <Modal title="Basic Modal" open={isSaleModalOpen} onOk={() =>handleSaleOk(settingPrice)} onCancel={handleSaleCancel}>
                                             <Input placeholder="请输入价格"
                                                 onChange={(e) => setSettingPrice(parseInt(e.target.value))}
                                              />
@@ -292,8 +307,8 @@ const HousePage = () => {
                                 key="action"
                                 render={(_: any, record: House) => (
                                     <div>
-                                        <Button onClick={showBuyModal}>购买</Button>
-                                        <Modal title="Basic Modal" open={isBuyModalOpen} onOk={() =>handleBuyOk(record)} onCancel={handleBuyCancel}>
+                                        <Button onClick={() => showBuyModal(record)}>购买</Button>
+                                        <Modal title="Basic Modal" open={isBuyModalOpen} onOk={() =>handleBuyOk()} onCancel={handleBuyCancel}>
                                             <p>你确定要购买该房屋吗？</p>
                                         </Modal>
                                     </div>
