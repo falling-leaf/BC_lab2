@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 
 async function main() {
   const BuyMyRoom = await ethers.getContractFactory("BuyMyRoom");
-  const buyMyRoom = await BuyMyRoom.deploy();
+  const buyMyRoom = await BuyMyRoom.deploy("BuyMyRoom", "ROOM");
   await buyMyRoom.deployed();
 
   console.log(`BuyMyRoom deployed to ${buyMyRoom.address}`);
