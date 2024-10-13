@@ -1,9 +1,11 @@
-import {Button, Table, Modal, Input} from 'antd';
+import {Button, Table, Modal, Input, Radio} from 'antd';
+import type { RadioChangeEvent } from 'antd';
 import {useEffect, useState} from 'react';
-import {roomContract, web3} from "../../utils/contracts";
+import {MyERC20Contract, roomContract, web3} from "../../utils/contracts";
 import './index.css';
+import { on } from 'events';
 
-const { Column, ColumnGroup } = Table;
+const { Column } = Table;
 
 const GanacheTestChainId = '0x539' // Ganache默认的ChainId = 0x539 = Hex(1337)
 // TODO change according to your configuration
@@ -26,11 +28,15 @@ const HousePage = () => {
     const [houses, setHouses] = useState<House[]>([])
     const [onSaleHouses, setOnSaleHouses] = useState<House[]>([])
     const [settingPrice, setSettingPrice] = useState(0)
+    const [ERC20Token, setERC20Token] = useState(0)
 
     const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
     const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
     const [CopeSaleHouse, setCopeSaleHouse] = useState<House | null>(null);
     const [CopeBuyHouse, setCopeBuyHouse] = useState<House | null>(null);
+
+    const [BuyMethod, setBuyMethod] = useState('ETH');
+    const [payforERC20, setPayforERC20] = useState(0);
 
     const showSaleModal = (record: House) => {
         setIsSaleModalOpen(true);
@@ -58,6 +64,10 @@ const HousePage = () => {
 
     const handleBuyCancel = () => {
         setIsBuyModalOpen(false);
+    };
+
+    const onChangeBuyMethod = (e: RadioChangeEvent) => {
+        setBuyMethod(e.target.value);
     };
 
     useEffect(() => {
@@ -122,6 +132,7 @@ const HousePage = () => {
 
         if (roomContract) {
             try {
+                setHouses([])   
                 const houses: House[] = await roomContract.methods.getMyHouses().call({
                     from: account
                 })
@@ -144,6 +155,7 @@ const HousePage = () => {
 
         if (roomContract) {
             try {
+                setHouses([])   
                 const houses: House[] = await roomContract.methods.getSellingHouses().call({
                     from: account
                 })
@@ -169,19 +181,29 @@ const HousePage = () => {
                 // 获取房屋信息以获取价格
                 const house: House = await roomContract.methods.getHouseInfo(houseId).call(); // 确保此函数可以从合约中获取房屋信息
                 const housePrice = BigInt(house.price) * BigInt("1000000000000000000"); // 获取房屋价格
-    
+                console.log(BuyMethod)
                 console.log(`House ID: ${houseId}, Price: ${housePrice}`);
-    
+
+                // const balance = await web3.eth.getBalance(account)
                 // 执行购买房屋交易
-                const tx = await roomContract.methods.buyHouse(houseId).send({
-                    from: account,
-                    value: housePrice.toString() // 将房屋价格作为以太币数量传递
-                });
-    
-                console.log(tx);
+                if (BuyMethod === 'ETH') {
+                    await roomContract.methods.buyHouse(houseId).send({
+                        from: account,
+                        value: housePrice.toString() // 将房屋价格作为以太币数量传递
+                    });
+                } else {
+                    // 先tmd要授权！超！
+                    await MyERC20Contract.methods.approve(roomContract.options.address, house.price).send({
+                        from: account
+                    })
+                    await roomContract.methods.buyHouseUseERC20(houseId).send({
+                        from: account
+                    });
+                }
                 alert('You have bought the house.');
                 onGetMyHouse(); // 刷新用户房屋列表
                 onGetOnSaleHouse(); // 刷新可购房屋列表
+                onUpdateERC20(); // 刷新ERC20余额
             } catch (error: any) {
                 alert(error.message);
             }
@@ -252,8 +274,79 @@ const HousePage = () => {
             const accounts = await ethereum.request({method: 'eth_accounts'});
             // 如果用户存在，展示其account，否则显示错误信息
             setAccount(accounts[0] || 'Not able to get accounts');
+            onGetMyHouse();
+            onGetOnSaleHouse();
         } catch (error: any) {
             alert(error.message)
+        }
+    }
+
+    const onUpdateERC20 = async () => {
+        if(account === '') {
+            alert('You have not connected wallet yet.')
+            return
+        }
+
+        if (roomContract) {
+            try {
+                console.log("in updateERC20")
+                const token: number = await roomContract.methods.getMyERC20().call(
+                    {
+                        from: account
+                    }
+                )
+                console.log(token)
+                setERC20Token(Number(token))
+            } catch (error: any) {
+                alert(error.message)
+            }
+        } else {
+            alert('Contract not exists.')
+        }
+    }
+
+    const onGetMoreERC20 = async () => {
+        if(account === '') {
+            alert('You have not connected wallet yet.')
+        }
+        if (roomContract) {
+            try {
+                console.log(payforERC20)
+                const payERC20 = BigInt(payforERC20) * BigInt("1000000000000000000"); // 获取房屋价格
+                // const balance = await web3.eth.getBalance(account)
+                const tx = await roomContract.methods.getERC20(payforERC20).send({
+                    from: account,
+                    value: payERC20.toString()
+                })
+                console.log(tx)
+                alert('You have claimed more ERC20 token.')
+                onUpdateERC20()
+            } catch (error: any) {
+                alert(error.message)
+            }
+        } else {
+            alert('Contract not exists.')
+        }
+    }
+
+    const onTesting = async () => {
+        if(account === '') {
+            alert('You have not connected wallet yet.')
+        }
+        if (roomContract) {
+            try {
+                await MyERC20Contract.methods.approve(roomContract.options.address, 5).send({
+                    from: account
+                })
+                await roomContract.methods.buyHouseUseERC20(0).send({
+                    from: account
+                });
+                alert('You have called testing function.')
+            } catch (error: any) {
+                alert(error.message)
+            }
+        } else {
+            alert('Contract not exists.')
         }
     }
 
@@ -264,10 +357,19 @@ const HousePage = () => {
                 <Button onClick={onClaimTokenAirdrop}>领取房屋空投</Button>
                 <div>管理员地址：{managerAccount}</div>
                 <div className='account'>
-                    {account === '' && <Button onClick={onClickConnectWallet}>连接钱包</Button>}
                     <div>当前用户：{account === '' ? '无用户连接' : account}</div>
                 </div>
                 <Button onClick={onClickConnectWallet}>连接钱包</Button>
+                <Button onClick={onUpdateERC20}>更新ERC20代币数量</Button>
+                <div>ERC20代币数量：{ERC20Token}</div>
+                <div> 
+                    <Input placeholder="请输入购买数量"
+                            type="number"
+                            style={{width: "50%"}}
+                            onChange={(e) => setPayforERC20(parseInt(e.target.value))}
+                     />
+                    <Button onClick={onGetMoreERC20}>获取更多ERC20代币</Button> 
+                </div>
                 <div style={{display: 'flex', justifyContent: 'space-between'}}>
                     <div>我的房屋
                         <Button onClick={onGetMyHouse}>查看我的房屋</Button>
@@ -309,7 +411,11 @@ const HousePage = () => {
                                     <div>
                                         <Button onClick={() => showBuyModal(record)}>购买</Button>
                                         <Modal title="Basic Modal" open={isBuyModalOpen} onOk={() =>handleBuyOk()} onCancel={handleBuyCancel}>
-                                            <p>你确定要购买该房屋吗？</p>
+                                            <p>选择购买方式：</p>
+                                            <Radio.Group onChange={onChangeBuyMethod} value={BuyMethod}>
+                                                <Radio value="ETH">以太币</Radio>
+                                                <Radio value="ERC20">ERC20代币</Radio>
+                                            </Radio.Group>
                                         </Modal>
                                     </div>
                                     
