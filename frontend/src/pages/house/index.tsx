@@ -117,7 +117,7 @@ const HousePage = () => {
             }
         }
         onGetMyHouse()
-    }, [account])
+    }, [account, houses])
 
     useEffect(() => {
         const onGetOnSaleHouse = async () => {
@@ -134,7 +134,34 @@ const HousePage = () => {
             }
         }
         onGetOnSaleHouse()
-    }, [account])
+    }, [account, onSaleHouses])
+
+    useEffect(() => {
+        const onUpdateERC20 = async () => {
+            if(account === '') {
+                alert('You have not connected wallet yet.')
+                return
+            }
+    
+            if (roomContract) {
+                try {
+                    console.log("in updateERC20")
+                    const token: number = await roomContract.methods.getMyERC20().call(
+                        {
+                            from: account
+                        }
+                    )
+                    console.log(token)
+                    setERC20Token(Number(token))
+                } catch (error: any) {
+                    alert(error.message)
+                }
+            } else {
+                alert('Contract not exists.')
+            }
+        }
+        onUpdateERC20()
+    }, [account, ERC20Token])
 
     const onClaimTokenAirdrop = async () => {
         if(account === '') {
@@ -188,7 +215,6 @@ const HousePage = () => {
                     });
                 }
                 alert('You have bought the house.');
-                onUpdateERC20(); // 刷新ERC20余额
             } catch (error: any) {
                 alert(error.message);
             }
@@ -197,7 +223,6 @@ const HousePage = () => {
         }
     }
     
-
     const onSaleHouse = async (houseId: number, price: number) => {
         if(account === '') {
             alert('You have not connected wallet yet.')
@@ -262,30 +287,6 @@ const HousePage = () => {
         }
     }
 
-    const onUpdateERC20 = async () => {
-        if(account === '') {
-            alert('You have not connected wallet yet.')
-            return
-        }
-
-        if (roomContract) {
-            try {
-                console.log("in updateERC20")
-                const token: number = await roomContract.methods.getMyERC20().call(
-                    {
-                        from: account
-                    }
-                )
-                console.log(token)
-                setERC20Token(Number(token))
-            } catch (error: any) {
-                alert(error.message)
-            }
-        } else {
-            alert('Contract not exists.')
-        }
-    }
-
     const onGetMoreERC20 = async () => {
         if(account === '') {
             alert('You have not connected wallet yet.')
@@ -301,7 +302,6 @@ const HousePage = () => {
                 })
                 console.log(tx)
                 alert('You have claimed more ERC20 token.')
-                onUpdateERC20()
             } catch (error: any) {
                 alert(error.message)
             }
@@ -320,7 +320,6 @@ const HousePage = () => {
                     <div>当前用户：{account === '' ? '无用户连接' : account}</div>
                 </div>
                 <Button onClick={onClickConnectWallet}>连接钱包</Button>
-                <Button onClick={onUpdateERC20}>更新ERC20代币数量</Button>
                 <div>ERC20代币数量：{ERC20Token}</div>
                 <div> 
                     <Input placeholder="请输入购买数量"
