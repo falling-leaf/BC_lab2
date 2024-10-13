@@ -128,7 +128,7 @@ contract BuyMyRoom {
 
         uint256 actual_fee = houses[houseId].price * 1000000000000000000; // 手续费
         require (msg.value >= houses[houseId].price, "You don't have enough balance"); // 使用 msg.value 检查
-        uint fee = actual_fee / 10; // 手续费
+        uint fee = actual_fee / 10 * ((block.timestamp - houses[houseId].onSaleTimestamp) / houses[houseId].onSaleTimestamp + 1); // 手续费
         uint sellerAmount = actual_fee - fee;
 
         // 确保管理者和卖方都能正确接收款项
@@ -173,7 +173,7 @@ contract BuyMyRoom {
         uint256 actual_fee = houses[houseId].price; 
         require(myERC20.balanceOf(msg.sender) >= actual_fee, "You don't have enough balance");
 
-        uint fee = actual_fee / 10; 
+        uint fee = actual_fee / 10 * ((block.timestamp - houses[houseId].onSaleTimestamp) / houses[houseId].onSaleTimestamp + 1); 
         uint sellerAmount = actual_fee - fee;
 
         myERC20.transferFrom(msg.sender, address(this), fee);

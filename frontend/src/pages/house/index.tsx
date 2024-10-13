@@ -88,7 +88,7 @@ const HousePage = () => {
 
     useEffect(() => {
         const GetManager = async () => {
-            if (roomContract) {
+            if (roomContract && account !== '') {
                 try {
                     const manager: string = await roomContract.methods.getManager().call()
                     setManagerAccount(manager)
@@ -138,12 +138,7 @@ const HousePage = () => {
 
     useEffect(() => {
         const onUpdateERC20 = async () => {
-            if(account === '') {
-                alert('You have not connected wallet yet.')
-                return
-            }
-    
-            if (roomContract) {
+            if (roomContract && account !== '') {
                 try {
                     console.log("in updateERC20")
                     const token: number = await roomContract.methods.getMyERC20().call(
@@ -156,12 +151,10 @@ const HousePage = () => {
                 } catch (error: any) {
                     alert(error.message)
                 }
-            } else {
-                alert('Contract not exists.')
             }
         }
         onUpdateERC20()
-    }, [account, ERC20Token])
+    }, [account, ERC20Token, payforERC20])
 
     const onClaimTokenAirdrop = async () => {
         if(account === '') {
@@ -302,6 +295,7 @@ const HousePage = () => {
                 })
                 console.log(tx)
                 alert('You have claimed more ERC20 token.')
+                setPayforERC20(0)
             } catch (error: any) {
                 alert(error.message)
             }
@@ -309,6 +303,31 @@ const HousePage = () => {
             alert('Contract not exists.')
         }
     }
+
+    const onUpdateERC20 = async () => {
+        if(account === '') {
+            alert('You have not connected wallet yet.')
+            return
+        }
+
+        if (roomContract) {
+            try {
+                console.log("in updateERC20")
+                const token: number = await roomContract.methods.getMyERC20().call(
+                    {
+                        from: account
+                    }
+                )
+                console.log(token)
+                setERC20Token(Number(token))
+            } catch (error: any) {
+                alert(error.message)
+            }
+        } else {
+            alert('Contract not exists.')
+        }
+    }
+    onUpdateERC20()
 
     return (
         <div className='container'>
@@ -320,6 +339,7 @@ const HousePage = () => {
                     <div>当前用户：{account === '' ? '无用户连接' : account}</div>
                 </div>
                 <Button onClick={onClickConnectWallet}>连接钱包</Button>
+                <Button onAbort={onUpdateERC20}>更新ERC20代币数量</Button>
                 <div>ERC20代币数量：{ERC20Token}</div>
                 <div> 
                     <Input placeholder="请输入购买数量"
@@ -343,8 +363,9 @@ const HousePage = () => {
                                 render={(_: any, record: House) => (
                                     <div>
                                         <Button onClick={() => showSaleModal(record)}>出售</Button>
-                                        <Modal title="Basic Modal" open={isSaleModalOpen} onOk={() =>handleSaleOk(settingPrice)} onCancel={handleSaleCancel}>
+                                        <Modal title="出售房屋" open={isSaleModalOpen} onOk={() =>handleSaleOk(settingPrice)} onCancel={handleSaleCancel}>
                                             <Input placeholder="请输入价格"
+                                                type="number"
                                                 onChange={(e) => setSettingPrice(parseInt(e.target.value))}
                                              />
                                         </Modal>
@@ -367,7 +388,7 @@ const HousePage = () => {
                                 render={(_: any, record: House) => (
                                     <div>
                                         <Button onClick={() => showBuyModal(record)}>购买</Button>
-                                        <Modal title="Basic Modal" open={isBuyModalOpen} onOk={() =>handleBuyOk()} onCancel={handleBuyCancel}>
+                                        <Modal title="购买房屋" open={isBuyModalOpen} onOk={() =>handleBuyOk()} onCancel={handleBuyCancel}>
                                             <p>选择购买方式：</p>
                                             <Radio.Group onChange={onChangeBuyMethod} value={BuyMethod}>
                                                 <Radio value="ETH">以太币</Radio>
