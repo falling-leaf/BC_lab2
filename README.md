@@ -110,3 +110,48 @@ npm start
 
 ![img8](image/README/img8.png)
 
+#### 2.3 购买房屋（以太币）
+
+1. 切换其他账号，并对可购买的房屋点击“购买”按钮，弹出购买窗口：
+
+![img9](image/README/img9.png)
+
+2. 确定后，弹出交易确认窗口：
+
+![img10](image/README/img10.png)
+
+3. 确定后，可见房屋状态正确变化：
+
+![img11](image/README/img11.png)
+
+4. 查看ganache区块链，可见状态变化（设置平台抽成10%（增加1）；其余正常交易）：
+
+![img12](image/README/img12.png)
+
+#### 2.4 通过以太币购买代币
+
+1. 输入希望购买的代币数，点击**获取更多ERC20代币**按钮，弹出交易确认窗口：
+
+![img13](image/README/img13.png)
+
+2. 确定后，可见ERC20代币正确变化：
+
+![img14](image/README/img14.png)
+
+#### 2.5 购买房屋（代币）
+
+1. 切换其他账号，并对可购买的房屋点击“购买”按钮，弹出购买窗口：
+
+![img17](image/README/img17.png)
+
+2. 确定后，弹出交易确认窗口：
+
+![img15](image/README/img15.png)
+
+3. 确定后，可见房屋状态、代币数量正确变化：
+
+![img16](image/README/img16.png)
+
+4. 查看另一账户的代币数量（这里有1个代币归属平台，因此到账代币为9）：
+
+![img17](image/README/img17.png)
