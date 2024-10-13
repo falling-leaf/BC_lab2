@@ -143,6 +143,7 @@ contract BuyMyRoom {
         myERC721.transfer(houses[houseId].owner, msg.sender, houseId); // 转移房产
         houses[houseId].onSale = false; // 房屋不再在售
         houses[houseId].onSaleTimestamp = 0; // 挂单时间清零
+        houses[houseId].price = 0;
         houses[houseId].owner = msg.sender; // 房主变更
 
         emit OnBuy(houseId, msg.sender, houses[houseId].price); // 触发事件
@@ -181,6 +182,7 @@ contract BuyMyRoom {
         myERC721.transfer(houses[houseId].owner, msg.sender, houseId); // 转移房产
         houses[houseId].onSale = false; 
         houses[houseId].onSaleTimestamp = 0; 
+        houses[houseId].price = 0;
         houses[houseId].owner = msg.sender; 
         return true;
     }

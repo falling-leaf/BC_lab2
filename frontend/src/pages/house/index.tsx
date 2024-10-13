@@ -3,7 +3,6 @@ import type { RadioChangeEvent } from 'antd';
 import {useEffect, useState} from 'react';
 import {MyERC20Contract, roomContract, web3} from "../../utils/contracts";
 import './index.css';
-import { on } from 'events';
 
 const { Column } = Table;
 
@@ -103,6 +102,40 @@ const HousePage = () => {
         GetManager()
     }, [])
 
+    useEffect(() => {
+        const onGetMyHouse = async () => {
+            if (roomContract && account !== '') {
+                try {
+                    const houses: House[] = await roomContract.methods.getMyHouses().call({
+                        from: account
+                    })
+                    setHouses(houses)
+                } catch (error: any) {
+                    console.log(error)
+                    alert(error.message)
+                }
+            }
+        }
+        onGetMyHouse()
+    }, [account])
+
+    useEffect(() => {
+        const onGetOnSaleHouse = async () => {
+            if (roomContract && account !== '') {
+                try {
+                    const houses: House[] = await roomContract.methods.getSellingHouses().call({
+                        from: account
+                    })
+                    setOnSaleHouses(houses)
+                } catch (error: any) {
+                    console.log(error)
+                    alert(error.message)
+                }
+            }
+        }
+        onGetOnSaleHouse()
+    }, [account])
+
     const onClaimTokenAirdrop = async () => {
         if(account === '') {
             alert('You have not connected wallet yet.')
@@ -120,52 +153,6 @@ const HousePage = () => {
             }
 
         } else {
-            alert('Contract not exists.')
-        }
-    }
-
-    const onGetMyHouse = async () => {
-        if(account === '') {
-            alert('You have not connected wallet yet.')
-            return
-        }
-
-        if (roomContract) {
-            try {
-                setHouses([])   
-                const houses: House[] = await roomContract.methods.getMyHouses().call({
-                    from: account
-                })
-                console.log(houses)
-                setHouses(houses)
-            } catch (error: any) {
-                alert(error.message)
-            }
-
-        } else {
-            alert('Contract not exists.')
-        }
-    }
-
-    const onGetOnSaleHouse = async () => {
-        if(account === '') {
-            alert('You have not connected wallet yet.')
-            return
-        }
-
-        if (roomContract) {
-            try {
-                setHouses([])   
-                const houses: House[] = await roomContract.methods.getSellingHouses().call({
-                    from: account
-                })
-                console.log(houses)
-                setOnSaleHouses(houses)
-            } catch (error: any) {
-                alert(error.message)
-            }
-
-            } else {
             alert('Contract not exists.')
         }
     }
@@ -201,8 +188,6 @@ const HousePage = () => {
                     });
                 }
                 alert('You have bought the house.');
-                onGetMyHouse(); // 刷新用户房屋列表
-                onGetOnSaleHouse(); // 刷新可购房屋列表
                 onUpdateERC20(); // 刷新ERC20余额
             } catch (error: any) {
                 alert(error.message);
@@ -227,8 +212,6 @@ const HousePage = () => {
                 })
                 console.log(tx)
                 alert('You have put the house on sale.')
-                onGetMyHouse();
-                onGetOnSaleHouse();
             } catch (error: any) {
                 alert(error.message)
             }
@@ -274,8 +257,6 @@ const HousePage = () => {
             const accounts = await ethereum.request({method: 'eth_accounts'});
             // 如果用户存在，展示其account，否则显示错误信息
             setAccount(accounts[0] || 'Not able to get accounts');
-            onGetMyHouse();
-            onGetOnSaleHouse();
         } catch (error: any) {
             alert(error.message)
         }
@@ -329,27 +310,6 @@ const HousePage = () => {
         }
     }
 
-    const onTesting = async () => {
-        if(account === '') {
-            alert('You have not connected wallet yet.')
-        }
-        if (roomContract) {
-            try {
-                await MyERC20Contract.methods.approve(roomContract.options.address, 5).send({
-                    from: account
-                })
-                await roomContract.methods.buyHouseUseERC20(0).send({
-                    from: account
-                });
-                alert('You have called testing function.')
-            } catch (error: any) {
-                alert(error.message)
-            }
-        } else {
-            alert('Contract not exists.')
-        }
-    }
-
     return (
         <div className='container'>
             <div>
@@ -372,7 +332,6 @@ const HousePage = () => {
                 </div>
                 <div style={{display: 'flex', justifyContent: 'space-between'}}>
                     <div>我的房屋
-                        <Button onClick={onGetMyHouse}>查看我的房屋</Button>
                         <Table<House> dataSource={houses}>
                             <Column title="编号" key="tokenId" render={(text, record) => record.tokenId !== undefined ? record.tokenId.toString() : '无编号'} />
                             <Column title="所有人" dataIndex="owner" key="owner" />
@@ -397,7 +356,6 @@ const HousePage = () => {
                         </Table>
                     </div>
                     <div>买入房屋
-                        <Button onClick={onGetOnSaleHouse}>查看可购房屋</Button>
                         <Table<House> dataSource={onSaleHouses}>
                             <Column title="编号" key="tokenId" render={(text, record) => record.tokenId !== undefined ? record.tokenId.toString() : '无编号'} />
                             <Column title="所有人" dataIndex="owner" key="owner" />
